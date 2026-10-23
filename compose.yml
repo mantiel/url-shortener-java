@@ -1,15 +1,24 @@
 services:
   postgres:
+    # Use the official PostgreSQL 17 image
     image: "postgres:17"
     container_name: url-shortener-java-postgres
+
+    # Initialize the database using environment variables from .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    # Expose PostgreSQL on the host machine
     ports:
       - "5432:5432"
+
+    # Persist database data across container restarts
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+    # Check whether PostgreSQL is ready to accept connections
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
@@ -17,19 +26,27 @@ services:
       retries: 5
 
   app:
+    # Build the application image using the Dockerfile in the project root
     build:
       context: .
       dockerfile: Dockerfile
     container_name: url-shortener-java
+
+    # Expose the Spring Boot application on port 8080
     ports:
       - "8080:8080"
+
+    # Start the application only after PostgreSQL passes its health check
     depends_on:
       postgres:
         condition: service_healthy
+
+    # Configure the Spring DataSource connection
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
 
+# Define a named volume for persistent PostgreSQL storage
 volumes:
   postgres_data:
